@@ -53,6 +53,6 @@ BATCH_SIZE = 10
 history = model.fit([X_1, X_2], y, epochs = NUM_EPOCHS, verbose = 1)
 
 # Generate scores from document/query features.
-get_score = backend.function([rel_doc], rel_score)
+get_score = backend.function([rel_doc], [rel_score])
 get_score([X_1])
 get_score([X_2])
