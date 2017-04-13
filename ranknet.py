@@ -9,6 +9,8 @@ from keras import backend
 from keras.layers import Add, Dense, Input, Lambda
 from keras.models import Model
 
+INPUT_DIM = 50
+
 # Model.
 h_1 = Dense(128, activation = "relu")
 h_2 = Dense(64, activation = "relu")
@@ -16,7 +18,6 @@ h_3 = Dense(32, activation = "relu")
 s = Dense(1)
 
 # Relevant document score.
-INPUT_DIM = 50
 rel_doc = Input(shape = (INPUT_DIM, ), dtype = "float32")
 h_1_rel = h_1(rel_doc)
 h_2_rel = h_2(h_1_rel)
