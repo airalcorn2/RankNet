@@ -1,5 +1,5 @@
 # Michael A. Alcorn (malcorn@redhat.com)
-# A (modified) implementation of RankNet as described in [1].
+# A (slightly modified) implementation of RankNet as described in [1].
 #   [1] http://icml.cc/2015/wp-content/uploads/2015/06/icml_ranking.pdf
 #   [2] https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/MSR-TR-2010-82.pdf
 
