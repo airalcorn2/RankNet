@@ -6,7 +6,7 @@
 import numpy as np
 
 from keras import backend
-from keras.layers import Add, Dense, Input, Lambda
+from keras.layers import Activation, Add, Dense, Input, Lambda
 from keras.models import Model
 
 INPUT_DIM = 50
@@ -36,7 +36,7 @@ negated_irr_score = Lambda(lambda x: -1 * x, output_shape = (1, ))(irr_score)
 diff = Add()([rel_score, negated_irr_score])
 
 # Pass difference through sigmoid function.
-prob = Dense(1, activation = "sigmoid", weights = [np.array([[1]])], use_bias = False, trainable = False)(diff)
+prob = Activation("sigmoid")(diff)
 
 # Build model.
 model = Model(inputs = [rel_doc, irr_doc], outputs = prob)
@@ -51,7 +51,7 @@ y = np.ones((X_1.shape[0], 1))
 # Train model.
 NUM_EPOCHS = 10
 BATCH_SIZE = 10
-history = model.fit([X_1, X_2], y, epochs = NUM_EPOCHS, verbose = 1)
+history = model.fit([X_1, X_2], y, batch_size = BATCH_SIZE, epochs = NUM_EPOCHS, verbose = 1)
 
 # Generate scores from document/query features.
 get_score = backend.function([rel_doc], [rel_score])
