@@ -44,8 +44,8 @@ model.compile(optimizer = "adadelta", loss = "binary_crossentropy")
 
 # Fake data.
 N = 100
-X_1 = 2 * np.random.randn(N, INPUT_DIM)
-X_2 = np.random.randn(N, INPUT_DIM)
+X_1 = 2 * np.random.uniform(size = (N, INPUT_DIM))
+X_2 = np.random.uniform(size = (N, INPUT_DIM))
 y = np.ones((X_1.shape[0], 1))
 
 # Train model.
