@@ -65,7 +65,6 @@ for i in range(N_REL):
     lambs[N_REL:] += lamb
 
 # Accumulate lambda scaled gradients.
-d_Cs = -lambs
 grads = {}
 for i in range(N_DOCS):
     model.zero_grad()
@@ -73,12 +72,13 @@ for i in range(N_DOCS):
     for param in model.parameters():
         # See section 4.1 in [2].
         if param not in grads:
-            grads[param] = d_Cs[i] * param.grad
+            grads[param] = lambs[i] * param.grad
         else:
-            grads[param] += d_Cs[i] * param.grad
+            grads[param] += lambs[i] * param.grad
 
 # Update model weights.
 lr = 0.00001
 with torch.no_grad():
     for param in model.parameters():
-        param -= lr * grads[param].to(device)
+        # See section 4.1 in [2].
+        param += lr * grads[param].to(device)
