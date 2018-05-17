@@ -7,12 +7,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from scipy.stats import rankdata
-
-INPUT_DIM = 50
-N_DOCS = 20
-N_REL = 5
-
 
 def idcg(n_rel):
     # Assuming binary relevance.
@@ -21,9 +15,17 @@ def idcg(n_rel):
     return (nums / denoms).sum()
 
 
+# Data.
+input_dim = 50
+n_docs = 20
+n_rel = 5
+n_irr = n_docs - n_rel
+
+doc_features = np.random.randn(n_docs, input_dim)
+
 # Model.
 model = torch.nn.Sequential(
-    nn.Linear(INPUT_DIM, 128),
+    nn.Linear(input_dim, 128),
     nn.ReLU(),
     nn.Linear(128, 64),
     nn.ReLU(),
@@ -35,34 +37,30 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 
 # Document scores.
-doc_features = np.random.randn(N_DOCS, INPUT_DIM)
-relevant = np.zeros(N_DOCS)
-relevant[:N_REL] = 1
-
 docs = torch.from_numpy(np.array(doc_features, dtype = "float32"))
 docs = docs.to(device)
 doc_scores = model(docs)
-doc_scores_np = doc_scores.cpu().detach().numpy().flatten()
 
 # Document ranks.
-doc_ranks = rankdata(-doc_scores_np)
+(sorted_scores, sorted_idxs) = doc_scores.sort(dim = 0, descending = True)
+doc_ranks = torch.zeros(n_docs).to(device)
+doc_ranks[sorted_idxs] = 1 + torch.arange(n_docs).view((n_docs, 1)).to(device)
+doc_ranks = doc_ranks.view((n_docs, 1))
 
 # Compute lambdas.
-N = 1 / idcg(N_REL)
-lambs = np.zeros(N_DOCS, dtype = "float32")
-for i in range(N_REL):
-    rel_score = doc_scores_np[i]
-    diffs = rel_score - doc_scores_np[N_REL:]
-    exped = np.exp(diffs)
-    # See equation (6) in [2].
-    lamb = -1 / (1 + exped) * N * np.abs(1 / np.log2(1 + doc_ranks[i]) - 1 / np.log2(1 + doc_ranks[N_REL:]))
-    # See section 6.1 in [1], but lambdas have opposite signs from [2].
-    lambs[i] -= lamb.sum()
-    lambs[N_REL:] += lamb
+diffs = doc_scores[:n_rel] - doc_scores[n_rel:].view(n_irr)
+exped = diffs.exp()
+# See equation (6) in [2].
+N = 1 / idcg(n_rel)
+ndcg_diffs = (1 / (1 + doc_ranks[:n_rel])).log2() - (1 / (1 + doc_ranks[n_rel:])).log2().view(n_irr)
+lamb_updates = -1 / (1 + exped) * N * ndcg_diffs.abs()
+# See section 6.1 in [1], but lambdas have opposite signs from [2].
+lambs = torch.zeros((n_docs, 1)).to(device)
+lambs[:n_rel] -= lamb_updates.sum(dim = 1, keepdim = True)
+lambs[n_rel:] += lamb_updates.sum(dim = 0, keepdim = True).t()
 
 # Accumulate lambda scaled gradients.
 model.zero_grad()
-lambs = torch.from_numpy(lambs.reshape((len(lambs), 1))).to(device)
 doc_scores.backward(lambs)
 
 # Update model weights.
