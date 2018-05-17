@@ -61,20 +61,12 @@ for i in range(N_REL):
     lambs[N_REL:] += lamb
 
 # Accumulate lambda scaled gradients.
-grads = {}
-for i in range(N_DOCS):
-    model.zero_grad()
-    doc_scores[i].backward(retain_graph = True)
-    for param in model.parameters():
-        # See section 4.1 in [2].
-        if param not in grads:
-            grads[param] = lambs[i] * param.grad
-        else:
-            grads[param] += lambs[i] * param.grad
+model.zero_grad()
+lambs = torch.from_numpy(lambs.reshape((len(lambs), 1))).to(device)
+doc_scores.backward(lambs)
 
 # Update model weights.
 lr = 0.00001
 with torch.no_grad():
     for param in model.parameters():
-        # See section 4.1 in [2].
-        param += lr * grads[param].to(device)
+        param += lr * param.grad
