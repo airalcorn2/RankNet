@@ -5,17 +5,13 @@
 
 import numpy as np
 import torch
-import torch.autograd as autograd
 import torch.nn as nn
-import torch.nn.functional as F
 
 from scipy.stats import rankdata
 
 INPUT_DIM = 50
 N_DOCS = 20
-N_PAIRS = 200
 N_REL = 5
-N_IRR = N_DOCS - N_REL
 
 
 def idcg(n_rel):
@@ -27,7 +23,7 @@ def idcg(n_rel):
 
 # Model.
 model = torch.nn.Sequential(
-    nn.Linear(input_dim, 128),
+    nn.Linear(INPUT_DIM, 128),
     nn.ReLU(),
     nn.Linear(128, 64),
     nn.ReLU(),
