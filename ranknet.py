@@ -6,7 +6,7 @@
 import numpy as np
 
 from keras import backend
-from keras.layers import Activation, Add, Dense, Input, Lambda
+from keras.layers import Activation, Dense, Input, Subtract
 from keras.models import Model
 
 INPUT_DIM = 50
@@ -32,8 +32,7 @@ h_3_irr = h_3(h_2_irr)
 irr_score = s(h_3_irr)
 
 # Subtract scores.
-negated_irr_score = Lambda(lambda x: -1 * x, output_shape = (1, ))(irr_score)
-diff = Add()([rel_score, negated_irr_score])
+diff = Subtract()([rel_score, irr_score])
 
 # Pass difference through sigmoid function.
 prob = Activation("sigmoid")(diff)
