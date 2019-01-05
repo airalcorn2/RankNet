@@ -31,33 +31,33 @@ model = torch.nn.Sequential(
     nn.ReLU(),
     nn.Linear(64, 32),
     nn.ReLU(),
-    nn.Linear(32, 1))
+    nn.Linear(32, 1),
+)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 
 # Document scores.
-docs = torch.from_numpy(np.array(doc_features, dtype = "float32"))
+docs = torch.from_numpy(np.array(doc_features, dtype="float32"))
 docs = docs.to(device)
 doc_scores = model(docs)
 
 # Document ranks.
-(sorted_scores, sorted_idxs) = doc_scores.sort(dim = 0, descending = True)
+(sorted_scores, sorted_idxs) = doc_scores.sort(dim=0, descending=True)
 doc_ranks = torch.zeros(n_docs).to(device)
-doc_ranks[sorted_idxs] = 1 + torch.arange(n_docs).view((n_docs, 1)).to(device)
+doc_ranks[sorted_idxs] = 1 + torch.arange(n_docs).view((n_docs, 1)).to(device).float()
 doc_ranks = doc_ranks.view((n_docs, 1))
 
 # Compute lambdas.
-diffs = doc_scores[:n_rel] - doc_scores[n_rel:].view(n_irr)
-exped = diffs.exp()
-# See equation (6) in [2].
+# See equation (6) in [2] and equation (9) in [1].
+score_diffs = doc_scores[:n_rel] - doc_scores[n_rel:].view(n_irr)
+exped = score_diffs.exp()
 N = 1 / idcg(n_rel)
-ndcg_diffs = (1 / (1 + doc_ranks[:n_rel])).log2() - (1 / (1 + doc_ranks[n_rel:])).log2().view(n_irr)
-lamb_updates = -1 / (1 + exped) * N * ndcg_diffs.abs()
-# See section 6.1 in [1], but lambdas have opposite signs from [2].
+dcg_diffs = 1 / (1 + doc_ranks[:n_rel]).log2() - (1 / (1 + doc_ranks[n_rel:]).log2()).view(n_irr)
+lamb_updates = 1 / (1 + exped) * N * dcg_diffs.abs()
 lambs = torch.zeros((n_docs, 1)).to(device)
-lambs[:n_rel] -= lamb_updates.sum(dim = 1, keepdim = True)
-lambs[n_rel:] += lamb_updates.sum(dim = 0, keepdim = True).t()
+lambs[:n_rel] += lamb_updates.sum(dim=1, keepdim=True)
+lambs[n_rel:] -= lamb_updates.sum(dim=0, keepdim=True).t()
 
 # Accumulate lambda scaled gradients.
 model.zero_grad()
